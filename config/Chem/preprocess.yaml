@@ -1,10 +1,10 @@
-dataset: "Chem"
+dataset: "chem"
 
 path:
-  corpus_path: "/data/conggaoxiang/Chem"
+  corpus_path: "/workspace/CODE/DATABASE/HPM/text" #"data/conggaoxiang/Chem"
   lexicon_path: "lexicon/librispeech-lexicon.txt"
-  raw_path: "/data/conggaoxiang/Chem"
-  preprocessed_path: "/data/conggaoxiang/V2C/V2C_Code/example_Chem16_framelevel/chem"  # chem
+  raw_path: "/workspace/CODE/DATABASE/HPM/Corpus"  #"data/conggaoxiang/Chem"
+  preprocessed_path: "/workspace/CODE/DATABASE/HPM/Preprocessed"  # chem
   # Cheme
   # "/data/conggaoxiang/V2C/V2C_Code/example_G_16/MovieAnimation"
   # "/data/conggaoxiang/V2C/V2C_Code/example_GRID_wav16_frames/MovieAnimation"
