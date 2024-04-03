@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '7'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '7'
 import torch
 import random
 import json
@@ -11,13 +11,20 @@ from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 import audio as Audio
 from scipy.io.wavfile import read
+import librosa
 from librosa.filters import mel as librosa_mel_fn
 # import sys
 # import librosa
+import torch
+print(f"CUDA Available: {torch.cuda.is_available()}")
+print(f"Device Count: {torch.cuda.device_count()}")
+if torch.cuda.is_available():
+    print(f"Current CUDA Device: {torch.cuda.get_device_name(torch.cuda.current_device())}")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 MAX_WAV_VALUE = 32768.0
-
+torch.cuda.init()
 # from meldataset import mel_spectrogram_hifigan
 
 # with open(
@@ -39,36 +46,37 @@ MAX_WAV_VALUE = 32768.0
 
 
 with open(
-        os.path.join("/data/conggaoxiang/chemistry_lectures/chem_release_version/data_splits", "val.txt"), "r", encoding="utf-8"
+        os.path.join("data/conggaoxiang/chemistry_lectures/chem_release_version/data_splits", "val.txt"), "r", encoding="utf-8"
 ) as f:
     valname = []
     for line in f.readlines():
-        n, s = line.strip("\n").split("|")
-        valname.append(n)
+        n = line.strip("\n").split("|")
+        valname.extend(n)
 
 
 with open(
-        os.path.join("/data/conggaoxiang/chemistry_lectures/chem_release_version/data_splits", "train.txt"), "r", encoding="utf-8"
+        os.path.join("data/conggaoxiang/chemistry_lectures/chem_release_version/data_splits", "train.txt"), "r", encoding="utf-8"
 ) as f:
     trainname = []
     for line in f.readlines():
-        n, s = line.strip("\n").split("|")
-        trainname.append(n)
+        n = line.strip("\n").split("|")
+        trainname.extend(n)
 
 
 with open(
-        os.path.join("/data/conggaoxiang/chemistry_lectures/chem_release_version/data_splits", "test.txt"), "r", encoding="utf-8"
+        os.path.join("data/conggaoxiang/chemistry_lectures/chem_release_version/data_splits", "test.txt"), "r", encoding="utf-8"
 ) as f:
     testname = []
     for line in f.readlines():
-        n, s = line.strip("\n").split("|")
-        testname.append(n)
+        n = line.strip("\n").split("|")
+        testname.extend(n)
 
 class Preprocessor:
     def __init__(self, config):
         self.config = config
         self.in_dir = config["path"]["raw_path"]
         self.out_dir = config["path"]["preprocessed_path"]
+        self.corpus_path = config["path"]["corpus_path"]
         print("self.out_dir:", self.out_dir)
         self.val_size = config["preprocessing"]["val_size"]
         self.sampling_rate = config["preprocessing"]["audio"]["sampling_rate"]
@@ -127,10 +135,12 @@ class Preprocessor:
                 basename = wav_name.split(".")[0]
 
                 """V2C and Chem dataset"""
-                # """V2C"""
-                if basename in trainname or basename in valname:
+                # # """V2C"""
+                # if basename=='W7aJk7yrbUE':
+                #     print("X")
+                # if basename in trainname or basename in valname:
                 # """Chem"""
-                # if basename in trainname or basename in valname or basename in testname:
+                if basename in trainname or basename in valname or basename in testname:
                     my_num = my_num+1
                     tg_path = os.path.join(
                         self.out_dir, "TextGrid", speaker, "{}.TextGrid".format(basename)
@@ -243,7 +253,7 @@ class Preprocessor:
 
     def process_utterance(self, speaker, basename):
         wav_path = os.path.join(self.in_dir, speaker, "{}.wav".format(basename))
-        text_path = os.path.join(self.in_dir, speaker, "{}.txt".format(basename))
+        text_path = os.path.join(self.corpus_path, "{}.txt".format(basename))
         tg_path = os.path.join(
             self.out_dir, "TextGrid", speaker, "{}.TextGrid".format(basename)
         )
@@ -258,8 +268,8 @@ class Preprocessor:
             return None
 
         # Read and trim wav files
-        # wav, _ = librosa.load(wav_path, sr=16000)
-        sampling_rate_, wav = read(wav_path)
+        wav, _ = librosa.load(wav_path, sr=16000)
+        # sampling_rate_, wav = read(wav_path)
         wav = wav / MAX_WAV_VALUE
 
         wav = wav[
@@ -423,7 +433,7 @@ def mel_spectrogram_HF(y, n_fft, num_mels, sampling_rate, hop_size, win_size, fm
 
     global mel_basis, hann_window
     if fmax not in mel_basis:
-        mel = librosa_mel_fn(sampling_rate, n_fft, num_mels, fmin, fmax)
+        mel = librosa_mel_fn(sr=sampling_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax)
         mel_basis[str(fmax) + '_' + str(y.device)] = torch.from_numpy(mel).float().to(y.device)
         hann_window[str(y.device)] = torch.hann_window(win_size).to(y.device)
 
